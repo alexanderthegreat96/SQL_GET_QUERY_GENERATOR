@@ -1,48 +1,26 @@
 <?php
 //generate dynamic query php 
+//author lexsystems 
+//aka alexander dth
 
-$params = array
-(
-   "sort" => 
-   array
-   (
-        1 => array
-        (
-            "GET" => "name_asc",
-            "sql_field" => "last_name",
-            "order_sql" => "ASC", 
-        ),
-        2 => array
-        (
-            "GET" => "name_desc",
-            "sql_field" => "last_name",
-            "order_sql" => "DESC", 
-        ),
-   ),
-   
-    "criteria" =>
-    array
-    (
-         1 => array
-        (
-            "GET" => "user_rank",
-            "sql_field" => "rank",
-           
-        ),
-        2 => array
-        (
-            "GET" => "status",
-            "sql_field" => "status",
-            
-        ),
-    ),
-    
-    
-);
+
+//generates advanced sort query
+//function for removing unwanted characters and hacking attempts
+function clean($string)
+{
+    $string = str_replace(' ', '', $string); // Replaces all spaces with hyphens.
+
+    return preg_replace('/[^A-Za-z0-9\-\|]/', '', $string); // Removes special chars.
+}
+
+//the function itself
 function gen_query($params,$table_name)
 {
        
        //defining sort order
+       if(isset($params["sort"]))
+       {
+        
        
        foreach($params["sort"] as $sort)
        {
@@ -55,14 +33,7 @@ function gen_query($params,$table_name)
             if($_GET["sort"] == $get_field)
             {
                 $sql_sort = "ORDER by $sql_field $sql_order";
-            }
-            elseif($_GET["sort"] == "")
-            {
-                $sql_sort = "";
-            }
-            else
-            {
-                $sql_sort = "";
+                
             }
             }
             else
@@ -71,6 +42,16 @@ function gen_query($params,$table_name)
             }
             
        }
+       }
+       else
+       {
+        $sql_sort = null;
+       }
+       
+       //define criteria order as in get criteria from something
+       if(isset($params["criteria"]))
+       {
+        
        
        foreach($params["criteria"] as $c)
        {
@@ -80,21 +61,138 @@ function gen_query($params,$table_name)
            if(array_key_exists($c_field, $_GET))
            {
             $criteria_input = $_GET["$c_field"];
-            
+            if($criteria_input !="")
+            {
             $criteria[] = "$c_sql = '$criteria_input'";
+            }
            }
           
        }
-      
-      if(!empty($criteria))
+        }
+        else
+        {
+            $criteria[] = null;
+        }
+        
+        //define regexp criteria
+        if(isset($params["regexp"]))
+        { 
+       foreach($params["regexp"] as $r)
+       {
+            $r_field = $r["GET"];
+            $r_sql = $r["sql_field"];
+            
+           if(array_key_exists($r_field, $_GET))
+           {
+            $regexp_input = $_GET["$r_field"];
+           
+            if($regexp_input !="")
+            {
+               
+                $regexp_input = explode(" ",$regexp_input);
+                foreach($regexp_input as $rg)
+                {
+                    $exp[] = clean($rg);
+                }
+                
+                $regexp_input = $exp;
+                
+                $regexp_input  = array_filter($regexp_input);
+              
+                if(count($regexp_input) > 1)
+                {
+                    $regexp_input = implode("|",$regexp_input);
+                    echo $regexp_input;
+                    //$regexp_input = clean($regexp_input);
+                    $regexp_input = rtrim($regexp_input,"|");
+                   
+                }
+                else
+                {
+                    $regexp_input = $regexp_input[0];
+                }
+               
+              
+               
+                
+            $regexp[] = "$r_sql REGEXP '$regexp_input'";
+            }
+           }
+      }
+       }
+       else
+       {
+        $regexp[] = null;
+       }
+       
+       //define between params
+       if(isset($params["between"]))
+       {
+            foreach($params["between"] as $b)
+            {
+                
+                $b_from = $b["GET"];
+                $b_to = $b["GET2"];
+                $b_sql = $b["sql_field"];
+                
+                $from = $_GET["$b_from"];
+                $to = $_GET["$b_from"];
+                
+                if(array_key_exists($b_from,$_GET) && array_key_exists($b_to,$_GET))
+                {
+                    $between[] = "$b_sql BETWEEN '$from' AND '$to'";
+                }
+            }
+            
+          
+       }
+       else
+       {
+        $between[] = null;
+       }
+                                             
+        //check for empty criteria array
+      if(!is_null($criteria))
       {
-      $criteria = implode(' AND ', $criteria);
-      $sql = "SELECT from $table_name WHERE $criteria $sql_sort";
+        $criteria = implode(' AND ', $criteria);
       }
       else
       {
-        $criteria = "";
-        $sql = "SELECT * FROM $table_name $sql_sort";
+        $criteria = null;
+      }
+      
+      //check for empty regexp array
+      if(!is_null($regexp))
+      {
+         $regexp = implode (' OR ', $regexp);
+      }
+      else
+      {
+        $regexp = null;
+      }
+      
+      //check for empty between array
+      if(!is_null($between))
+      {
+         $between = implode(' AND ',$between);
+      }
+      else
+      {
+        $between  = null;
+      }
+
+        // return data
+      $data = array($criteria,$regexp,$between);
+      $data = array_filter($data);
+      $data = implode(" AND ",$data);
+      
+      if(!empty($data))
+      {
+        $sql = "SELECT * FROM $table_name WHERE $data $sql_sort";
+      }
+      else
+      {
+        $sql = "SELECT * FROM $table_name ";
       }
       
      
@@ -102,8 +200,8 @@ function gen_query($params,$table_name)
       
       
 }
-//usage
-//the only $_GET value that is hardcoded is the sort parameter
-//looks like this yoursite.com/index.php?sort=name_desc&user_rank=1&status=active
-echo gen_query($params,"users");
+
+
+
+
 ?>
