@@ -1,17 +1,10 @@
 # SQL_GET_QUERY_GENERATOR
-A nifty little function that aims to help the people that are trying to build complex advanced search or sorting engines.
 
+I wrote the script to allow myself to build advanced MySQL queries without the need for manual intervantion.
+It is built to work with $_GET params, forms , to be more specific. Alloing developers to build search engines, sort mechanisms for both front and back-end websites . 
 
-How to use?
+It is able to work with fixed criteria, as in SELECT from tablename WHERE field='value', REGEXP, BETWEEN values and multiple sorting params. Just follow the example.php file  and structure your array acording to the GET param you are sending.
 
-Use the predefined parameters array to declare what $_GET values your form/link is sending
-
-
-For instance , I have used for criteria the GET value of user_rank and declared the sql field name rank. Same goes for the sort option.
-
-Feel free to ask any questions.
-
-Example usage:
 
 http://yoursite.com/script.php?sort=YOUR_SORT_GET_PARAMETER&YOUR_GET_CRITERIA=something&YOUR_GET_CRITERIA=something_else
 
